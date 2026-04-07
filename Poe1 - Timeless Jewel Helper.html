@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>PoE Timeless Jewel Builder</title>
+
+<style>
+body {
+  font-family: Arial;
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 20px;
+}
+.container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.card {
+  background: #1e293b;
+  padding: 15px;
+  border-radius: 10px;
+}
+input, textarea, button {
+  width: 100%;
+  margin: 5px 0;
+  padding: 8px;
+  border-radius: 6px;
+  border: none;
+}
+button {
+  background: #3b82f6;
+  color: white;
+  cursor: pointer;
+}
+.delete {
+  background: #ef4444;
+}
+textarea {
+  height: 120px;
+  background: #020617;
+  color: #22c55e;
+}
+.filter {
+  border-bottom: 1px solid #334155;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>PoE Timeless Jewel Filter Builder</h2>
+
+<div>
+<h2> Obtain the jewel numbers</h2>
+Run the following command on 
+https://vilsol.github.io/timeless-jewels/
+<pre>
+Array.from(document.querySelectorAll(".font-bold")).map(el => (m = el.textContent.match(/Seed\s+(\d+)/)) ? m[1] : null).filter(Boolean).join(" ")
+</pre>
+
+</div>
+
+<div class="container">
+
+<!-- LEFT -->
+<div class="card">
+
+  <h3>Bulk Add Numbers</h3>
+  <textarea id="bulkInput" placeholder="12096, 13000, 14000"></textarea>
+
+  <label>
+    <input type="checkbox" id="disabledToggle" />
+    Disabled
+  </label>
+
+  <button onclick="bulkAdd()">Add Filters</button>
+
+  <h3>Filters</h3>
+  <div id="filters"></div>
+
+</div>
+
+<!-- RIGHT -->
+<div class="card">
+
+  <h3>JSON</h3>
+  <textarea id="jsonOut"></textarea>
+
+  <h3>Raw URL</h3>
+  <textarea id="rawUrl"></textarea>
+
+  <h3>Encoded URL</h3>
+  <textarea id="encodedUrl"></textarea>
+
+  <button onclick="generate()">Generate URLs</button>
+
+</div>
+
+</div>
+
+<script>
+
+// ✅ DEFAULT JSON (your exact structure)
+const baseQuery = {
+  query: {
+    status: { option: "online" },
+    stats: [{
+      type: "count",
+      value: { min: 1 },
+      filters: [
+        {
+          id: "explicit.pseudo_timeless_jewel_rakiata",
+          value: { min: 12096, max: 12096 },
+          disabled: false
+        }
+      ],
+      disabled: false
+    }]
+  },
+  sort: { price: "asc" }
+};
+
+const BASE_URL = "https://www.pathofexile.com/trade/search/Standard";
+
+// helpers
+function getFilters() {
+  return baseQuery.query.stats[0].filters;
+}
+
+// prevent duplicates
+function exists(min, max) {
+  return getFilters().some(f =>
+    f.value.min === min && f.value.max === max
+  );
+}
+
+// add one filter
+function addFilter(num, disabled) {
+  if (exists(num, num)) return;
+
+  getFilters().push({
+    id: "explicit.pseudo_timeless_jewel_rakiata",
+    value: { min: num, max: num },
+    disabled
+  });
+}
+
+// bulk add
+function bulkAdd() {
+  const raw = document.getElementById("bulkInput").value;
+  const disabled = document.getElementById("disabledToggle").checked;
+
+  const nums = raw
+    .split(/[\s,]+/)
+    .map(n => Number(n))
+    .filter(n => !isNaN(n));
+
+  nums.forEach(n => addFilter(n, disabled));
+
+  refresh();
+}
+
+// delete by index (correct behavior)
+function removeFilter(index) {
+  getFilters().splice(index, 1);
+  refresh();
+}
+
+// UI refresh
+function refresh() {
+  const container = document.getElementById("filters");
+  container.innerHTML = "";
+
+  getFilters().forEach((f, i) => {
+    const div = document.createElement("div");
+    div.className = "filter";
+
+    div.innerHTML = `
+      <b>${f.id}</b><br>
+      Value: ${f.value.min}<br>
+      Disabled: ${f.disabled}<br>
+      <button class="delete" onclick="removeFilter(${i})">Delete</button>
+    `;
+
+    container.appendChild(div);
+  });
+
+  document.getElementById("jsonOut").value =
+    JSON.stringify(baseQuery, null, 2);
+}
+
+// generate URLs
+function generate() {
+  const raw = BASE_URL + "?q=" + JSON.stringify(baseQuery);
+  const encoded = BASE_URL + "?q=" + encodeURIComponent(JSON.stringify(baseQuery));
+
+  document.getElementById("rawUrl").value = raw;
+  document.getElementById("encodedUrl").value = encoded;
+}
+
+// init
+refresh();
+
+</script>
+
+</body>
+</html>
