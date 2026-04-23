@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>PoE Timeless Jewel Power Tool</title>
+<title>PoE Timeless Jewel Builder</title>
 
 <style>
 body { font-family: Arial; background:#0f172a; color:#e2e8f0; padding:20px;}
@@ -13,80 +13,67 @@ input, textarea, button, select {
 }
 button { background:#3b82f6; color:white; cursor:pointer;}
 .delete { background:#ef4444;}
-textarea { height:100px; background:#020617; color:#22c55e;}
-.filter { border-bottom:1px solid #334155; margin-bottom:6px;}
+textarea { height:120px; background:#020617; color:#22c55e;}
+.filter { border-bottom:1px solid #334155; margin-bottom:6px; padding-bottom:6px;}
 </style>
 </head>
 
 <body>
 
-<h2>PoE Timeless Jewel Power Tool</h2>
+<h2>PoE Timeless Jewel Builder (Simple)</h2>
 
 <div class="container">
 
 <!-- LEFT -->
 <div class="card">
 
-<h3>Bulk Seeds</h3>
-<textarea id="bulk"></textarea>
-
-  <!--
-<h4>Range Generator</h4>
-<input id="rangeMin" placeholder="Min">
-<input id="rangeMax" placeholder="Max">
-<input id="step" placeholder="Step (optional)">
-<button onclick="generateRange()">Generate Range</button>
--->
-<h4>Jewel Type</h4>
+<h3>Jewel Type</h3>
 <select id="jewelType">
-  <option value="rakiata">Lethal Pride (Rakiata)</option>
-  <option value="kaom">Lethal Pride (Kaom)</option>
-  <option value="kiloava">Lethal Pride (Kiloava)</option>
-  <option value="akoya">Lethal Pride (Akoya)</option>
+  <optgroup label="Lethal Pride (Karui)">
+    <option value="rakiata">Rakiata</option>
+    <option value="kaom">Kaom</option>
+    <option value="kiloava">Kiloava</option>
+    <option value="akoya">Akoya</option>
+  </optgroup>
 
-  <option value="asenath">Brutal Restraint (Asenath)</option>
-  <option value="nasima">Brutal Restraint (Nasima)</option>
-  <option value="balbala">Brutal Restraint (Balbala)</option>
+  <optgroup label="Brutal Restraint (Maraketh)">
+    <option value="asenath">Asenath</option>
+    <option value="nasima">Nasima</option>
+    <option value="balbala">Balbala</option>
+  </optgroup>
 
-  <option value="cadiro">Elegant Hubris (Cadiro)</option>
-  <option value="victario">Elegant Hubris (Victario)</option>
-  <option value="caspiro">Elegant Hubris (Caspiro)</option>
+  <optgroup label="Elegant Hubris (Eternal Empire)">
+    <option value="cadiro">Cadiro</option>
+    <option value="victario">Victario</option>
+    <option value="caspiro">Caspiro</option>
+  </optgroup>
 
-  <option value="doryani">Glorious Vanity (Doryani)</option>
-  <option value="xibaqua">Glorious Vanity (Xibaqua)</option>
-  <option value="ahuatotli">Glorious Vanity (Ahuana/Xibaqua variants)</option>
+  <optgroup label="Glorious Vanity (Vaal)">
+    <option value="doryani">Doryani</option>
+    <option value="xibaqua">Xibaqua</option>
+    <option value="ahuatotli">Ahuana</option>
+  </optgroup>
 
-  <option value="venarius">Militant Faith (Venarius)</option>
-  <option value="dominus">Militant Faith (Dominus)</option>
-  <option value="avarius">Militant Faith (Avarius)</option>
+  <optgroup label="Militant Faith (Templar)">
+    <option value="venarius">Venarius</option>
+    <option value="dominus">Dominus</option>
+    <option value="avarius">Avarius</option>
+  </optgroup>
 </select>
 
-<label><input type="checkbox" id="disabled"> Disabled</label>
+<h3>Bulk Seeds</h3>
+<textarea id="bulk" placeholder="12096, 13000, 14000"></textarea>
 
-<button onclick="bulkAdd()">Add Seeds</button>
-
-<hr>
+<button onclick="addSeeds()">Add Seeds</button>
+<button onclick="dedupe()">Remove Duplicates</button>
 
 <h3>Filters</h3>
 <div id="filters"></div>
-
-<button onclick="dedupe()">Remove Duplicates</button>
-<button onclick="compress()">Compress Ranges</button>
-
-<hr>
-
-<h3>Stats Groups</h3>
-<button onclick="addStat()">Add Group</button>
-<button onclick="chunk()">Auto Chunk</button>
 
 </div>
 
 <!-- RIGHT -->
 <div class="card">
-
-<h3>Import URL</h3>
-<textarea id="import"></textarea>
-<button onclick="decodeUrl()">Decode</button>
 
 <h3>JSON</h3>
 <textarea id="json"></textarea>
@@ -107,6 +94,7 @@ textarea { height:100px; background:#020617; color:#22c55e;}
 
 const BASE = "https://www.pathofexile.com/trade/search/Standard";
 
+// default query
 let query = {
   query:{
     status:{option:"online"},
@@ -124,167 +112,89 @@ let query = {
   sort:{price:"asc"}
 };
 
-function getFilters(group=0){
-  return query.query.stats[group].filters;
+function getFilters(){
+  return query.query.stats[0].filters;
 }
 
-// ===== CRUD =====
-
-function addFilter(num, disabled, type){
-  const id = `explicit.pseudo_timeless_jewel_${type}`;
-  if(getFilters().some(f=>f.id===id && f.value.min===num)) return;
-
-  getFilters().push({
-    id,
-    value:{min:num,max:num},
-    disabled
-  });
-}
-
-function removeFilter(group,i){
-  getFilters(group).splice(i,1);
-  refresh();
-}
-
-// ===== BULK =====
-
-function bulkAdd(){
-  const nums = parseInput(document.getElementById("bulk").value);
-  const disabled = document.getElementById("disabled").checked;
-  const type = document.getElementById("jewelType").value;
-
-  nums.forEach(n=>addFilter(n,disabled,type));
-  refresh();
-}
-
-function generateRange(){
-  let min = +rangeMin.value;
-  let max = +rangeMax.value;
-  let stepVal = +step.value || 1;
-
-  let arr=[];
-  for(let i=min;i<=max;i+=stepVal) arr.push(i);
-
-  bulk.value = arr.join(",");
-}
-
-// ===== SMART =====
-
-function dedupe(){
-  let seen=new Set();
-  query.query.stats.forEach(s=>{
-    s.filters = s.filters.filter(f=>{
-      let key=f.id+f.value.min;
-      if(seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  });
-  refresh();
-}
-
-function compress(){
-  let f=getFilters().sort((a,b)=>a.value.min-b.value.min);
-  let res=[];
-
-  for(let i=0;i<f.length;i++){
-    let cur=f[i];
-    while(i+1<f.length && f[i+1].value.min===cur.value.max+1){
-      cur.value.max=f[i+1].value.max;
-      i++;
-    }
-    res.push(cur);
-  }
-  query.query.stats[0].filters=res;
-  refresh();
-}
-
-function chunk(){
-  let all=[...getFilters()];
-  let size=50; // safe chunk size
-  query.query.stats=[];
-
-  for(let i=0;i<all.length;i+=size){
-    query.query.stats.push({
-      type:"count",
-      value:{min:1},
-      filters:all.slice(i,i+size),
-      disabled:false
-    });
-  }
-  refresh();
-}
-
-// ===== STATS =====
-
-function addStat(){
-  query.query.stats.push({
-    type:"count",
-    value:{min:1},
-    filters:[],
-    disabled:false
-  });
-  refresh();
-}
-
-// ===== URL =====
-
-function generate(){
-  let raw = BASE + "?q=" + JSON.stringify(query);
-  let enc = BASE + "?q=" + encodeURIComponent(JSON.stringify(query));
-
-  rawEl.value=raw;
-  encodedEl.value=enc;
-}
-
-function decodeUrl(){
-  try{
-    let url = importEl.value;
-    let q = decodeURIComponent(url.split("?q=")[1]);
-    query = JSON.parse(q);
-    refresh();
-  }catch(e){ alert("Invalid URL"); }
-}
-
-// ===== HELPERS =====
-
-function parseInput(str){
+// parse numbers
+function parse(str){
   return str.split(/[\s,]+/)
     .map(n=>+n)
     .filter(n=>!isNaN(n));
 }
 
-// ===== UI =====
+// add seeds using selected jewel type
+function addSeeds(){
+  const nums = parse(document.getElementById("bulk").value);
+  const type = document.getElementById("jewelType").value;
 
-function refresh(){
-  const div=document.getElementById("filters");
-  div.innerHTML="";
-
-  query.query.stats.forEach((s,gi)=>{
-    s.filters.forEach((f,i)=>{
-      let el=document.createElement("div");
-      el.className="filter";
-      el.innerHTML=`
-        [${gi}] ${f.id}<br>
-        ${f.value.min}-${f.value.max}<br>
-        <button class="delete" onclick="removeFilter(${gi},${i})">Delete</button>
-      `;
-      div.appendChild(el);
-    });
+  nums.forEach(n=>{
+    if(!getFilters().some(f => f.id === buildId(type) && f.value.min === n)){
+      getFilters().push({
+        id: buildId(type),
+        value:{min:n,max:n},
+        disabled:false
+      });
+    }
   });
 
-  json.value = JSON.stringify(query,null,2);
+  refresh();
 }
 
-// shortcuts
-const bulk=document.getElementById("bulk");
-const json=document.getElementById("json");
-const rawEl=document.getElementById("raw");
-const encodedEl=document.getElementById("encoded");
-const importEl=document.getElementById("import");
-const rangeMin=document.getElementById("rangeMin");
-const rangeMax=document.getElementById("rangeMax");
-const step=document.getElementById("step");
+function buildId(type){
+  return `explicit.pseudo_timeless_jewel_${type}`;
+}
+
+// dedupe (by id + seed)
+function dedupe(){
+  const seen=new Set();
+
+  query.query.stats[0].filters =
+    getFilters().filter(f=>{
+      const key = f.id + "_" + f.value.min;
+      if(seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+  refresh();
+}
+
+// delete
+function removeFilter(i){
+  getFilters().splice(i,1);
+  refresh();
+}
+
+// generate URLs
+function generate(){
+  const raw = BASE + "?q=" + JSON.stringify(query);
+  const enc = BASE + "?q=" + encodeURIComponent(JSON.stringify(query));
+
+  document.getElementById("raw").value = raw;
+  document.getElementById("encoded").value = enc;
+}
+
+// UI
+function refresh(){
+  const div = document.getElementById("filters");
+  div.innerHTML="";
+
+  getFilters().forEach((f,i)=>{
+    const el=document.createElement("div");
+    el.className="filter";
+
+    el.innerHTML = `
+      ${f.id.replace("explicit.pseudo_timeless_jewel_","")} : ${f.value.min}
+      <button class="delete" onclick="removeFilter(${i})">Delete</button>
+    `;
+
+    div.appendChild(el);
+  });
+
+  document.getElementById("json").value =
+    JSON.stringify(query,null,2);
+}
 
 refresh();
 
