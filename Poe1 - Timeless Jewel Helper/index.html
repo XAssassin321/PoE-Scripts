@@ -24,6 +24,7 @@ textarea { height:120px; background:#020617; color:#22c55e;}
 
   <div class="">
 Find the jewels you want on <a href="https://vilsol.github.io/timeless-jewels">timeless-jewels calculator</a> , open the "Matches" you want to find on the trade site, then run the command below in the brower console after finding the jewels you want. 
+  timeless-jewels calculator will only show the visible results in code, so the command below is limited for now
     <pre>
   [...new Set(Array.from(document.querySelectorAll("*")).map(el => (el.textContent.includes("weight") && (m = el.textContent.match(/Seed\s+(\d+)/))) ? m[1] : null).filter(Boolean))].join(" ")
 </pre>
