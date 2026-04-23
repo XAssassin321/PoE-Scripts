@@ -20,8 +20,15 @@ textarea { height:120px; background:#020617; color:#22c55e;}
 
 <body>
 
-<h2>PoE Timeless Jewel Builder (Simple)</h2>
+<h2>PoE Timeless Jewel Builder</h2>
 
+  <div class="">
+Find the jewels you want on https://vilsol.github.io/timeless-jewels , then run the command below in the brower console after finding the jewels you want. 
+    <pre>
+  [...new Set(Array.from(document.querySelectorAll("*")).map(el => (el.textContent.includes("weight") && (m = el.textContent.match(/Seed\s+(\d+)/))) ? m[1] : null).filter(Boolean))].join(" ")
+</pre>
+  </div>
+  
 <div class="container">
 
 <!-- LEFT -->
